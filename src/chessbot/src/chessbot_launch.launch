@@ -1,0 +1,5 @@
+<launch>
+  <node name="vicon_listener" pkg="UTDchess_RospyXbee" type="robot_center.py" />
+  <node name="cmd_vel_listener" pkg="UTDchess_RospyXbee" type="cmd_vel_listener.py" />
+  <node name="tf_listener" pkg="chessbot" type="chessbot_PID_controller.py" />
+</launch>

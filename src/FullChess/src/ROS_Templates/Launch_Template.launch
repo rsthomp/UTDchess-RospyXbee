@@ -1,0 +1,7 @@
+<launch>
+  <group ns="$(arg namesp)" >
+  <node name="vicon_listener" pkg="FullChess" type="Broadcaster_template.py" />
+  <node name="cmd_vel_listener" pkg="FullChess" type="Communicator_Template.py" />
+  <node name="tf_listener" pkg="FullChess" type="PID_Template.py" />
+  </group>
+</launch>
