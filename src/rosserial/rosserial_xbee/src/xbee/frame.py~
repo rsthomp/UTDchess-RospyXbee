@@ -54,7 +54,6 @@ class APIFrame:
         determines whether the result is correct. The result should 
         be 0xFF.
         """
-
         total = 0
         
         # Add together all bytes
@@ -64,7 +63,6 @@ class APIFrame:
         # Add checksum too
         total += ord(chksum)
         
-
         # Only keep low bits
         total &= 0xFF
         
