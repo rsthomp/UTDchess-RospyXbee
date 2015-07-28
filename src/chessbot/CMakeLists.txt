@@ -50,6 +50,7 @@ find_package(catkin REQUIRED COMPONENTS
    RobCMD.msg
    Axis.msg
    BeeCommand.msg
+   Vector.msg
  )
 
 ## Generate services in the 'srv' folder

@@ -3,6 +3,7 @@ import rospy
 from vicon_bridge.msg import Markers, Marker
 from chessbot.msg import RobCMD
 from chessbot.msg import Axis
+from chessbot.msg import Vector
 from std_msgs.msg import String
 from geometry_msgs.msg import PointStamped
 import binascii
@@ -15,14 +16,15 @@ bot_locations = {}
 
 #Node's topics, indexed by namespace
 bot_publishers = {}
+bot_vectors_pubs = {}
 processes = []
-
 
 def loc_callback(data):
 	global bot_locations
 	prevIdent = data.markers[0].subject_name
 	for marker_pos in data.markers:
 		ident = marker_pos.subject_name
+		#Tells the prorgam that a new message is beginning
 		if ident != prevIdent:
 			subdict = {prevIdent : [middle, front]}
 			bot_locations.update(subdict)
@@ -33,13 +35,24 @@ def loc_callback(data):
 		if marker_pos.marker_name == 'Front':
 			front = [marker_pos.translation.x/1000, marker_pos.translation.y/1000]
 		prevIdent = ident
+	#So no off-by-one error
 	subdict = {prevIdent : [middle, front]}
 	bot_locations.update(subdict)
 	if prevIdent in bot_publishers.keys():
 		send_location(prevIdent, bot_publishers[prevIdent])
 
-def find_bot(bot):
-	pass
+	#This sends messages to bots depending on where the other bots are in relation to them 
+	#So said bots are able to avoid collisions using a PID-Repulsion controller
+	for bot in bot_locations.keys():
+		pub = bot_vectors_pubs[bot]
+		for other_bot in bot_locations:
+			vector = Vector()
+			vector.origin_x = bot_locations[bot][0][0]
+			vector.origin_y = bot_locations[bot][0][1]
+			vector.end_x = other_bot[0][0]
+			vector.end_y = other_bot[0][1]
+			pub.publish(vector)
+
 
 def send_location(bot, publisher):
 	#sends the robot's TF broadcaster its current location
@@ -57,13 +70,15 @@ def send_location(bot, publisher):
 def topic_creator(bot):
 	#creates a topic for each robot's TF broadcaster in that robot's namespace
 	global bot_publishers
-	bot_publishers[bot] = rospy.Publisher("/%s/destination" % bot , Axis, queue_size=100)
+	bot_publishers[bot] = rospy.Publisher("/%s/destination" % bot, Axis, queue_size=100)
+	bot_vectors_pubs[bot] = rospy.Publisher("/%s/repulsions" % bot, Vector, queue_size=100)
 
 def node_creator(ns):
 	topic_creator(ns)
 	#initializes all necessary nodes in a robot's namespace
 	package = 'FullChess'
-	controller = roslaunch.core.Node(package, 'PID_Template.py', namespace=ns, launch_prefix="xterm -e")
+	control_pkg = rospy.get_param("%s_controller" % ns)
+	controller = roslaunch.core.Node(package, control_pkg, output = "screen", namespace=ns, launch_prefix="xterm -e")
 	communicator = roslaunch.core.Node(package, 'Communicator_Template.py', namespace=ns, launch_prefix="xterm -e", output="screen")
 	broadcaster = roslaunch.core.Node(package, 'Broadcaster_template.py', namespace=ns, launch_prefix="xterm -e")
 	launch = roslaunch.scriptapi.ROSLaunch()
@@ -76,15 +91,12 @@ def node_creator(ns):
 	processes.append(process)
 	process = launch.launch(broadcaster)
 	processes.append(process)
-	
-
-	
-	
 
 def get_addrs():
+	global bot_publishers
 	#finds each robot's name and address, and stores them as a global parameter
 	package = 'UTDchess_RospyXbee'
-	node_discover = roslaunch.core.Node(package, 'cmd_vel_listener.py', output = "screen", launch_prefix="xterm -e")
+	node_discover = roslaunch.core.Node(package, 'cmd_vel_listener.py', output = "screen")
 	launch = roslaunch.scriptapi.ROSLaunch()
 	launch.start()
 	process = launch.launch(node_discover)
@@ -96,19 +108,15 @@ def get_addrs():
 		rospy.set_param('%s_long' % name, addr_long)
 		rospy.loginfo(rospy.get_param('%s_long' % name))
 		rospy.set_param('%s_short' % name, addr_short)
-		node_creator(name)
+		topic_creator(name)
 		data = rospy.wait_for_message("/bot_addrs", String)
-	
+	for ns in bot_publishers.keys():
+		node_creator(ns)
 
 from chessbot.msg import RobCMD
 if __name__ == '__main__':
 	rospy.init_node('bot_locs_listener', anonymous=True)
-
 	get_addrs()
+
 	rospy.Subscriber("vicon/markers", Markers, loc_callback)
 	rospy.spin()
-	global processes
-	for process in processes:
-		process.end()
-#publish struct.pack( 'q', XBEE_ADDR_LONG)locations and addresses to a parameter dictionary
-#may need to give nodes generic names then re-resolve them. 

@@ -24,10 +24,12 @@ publ = rospy.Publisher("/cmd_hex", BeeCommand, queue_size=10)
 def cmd_vel_command(msg):
     #sends the message through the coordinator Xbee, to the robot
     global publ
+    global NAME
     finalCmd = BeeCommand()
     finalCmd.addr_long = XBEE_ADDR_LONG
     finalCmd.addr_short = XBEE_ADDR_SHORT
     finalCmd.command = msg
+    rospy.loginfo(NAME)
     rospy.loginfo("Sending: %s" % finalCmd)
     publ.publish(finalCmd)
     #xbee.tx(

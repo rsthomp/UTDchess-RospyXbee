@@ -15,6 +15,7 @@ NAME = NAME[1:(len(NAME)-1)]
 def avg(data):
     global NAME
     center = [data.center.x, data.center.y]
+    rospy.loginfo(NAME)
     rospy.loginfo(center)
 
     #this is the Y axis
@@ -24,7 +25,7 @@ def avg(data):
     BOT_ROTATION = calc_angle(BOT_X_AXIS[0], BOT_X_AXIS[1])
 
     #This should all be pretty much good
-    br.sendTransform((center[0]/1000, center[1]/1000, 0),
+    br.sendTransform((center[0], center[1], 0),
                      tf.transformations.quaternion_from_euler(0, 0, BOT_ROTATION),
                      rospy.Time.now(),
                      NAME,

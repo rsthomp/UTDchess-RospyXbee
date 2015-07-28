@@ -9,6 +9,7 @@ from std_msgs.msg import String
 from chessbot.msg import BeeCommand
 from xbee import ZigBee
 
+
 xbee = None
 XBEE_ADDR_LONG = '\x00\x00\x00\x00\x00\x00\xFF\xFF'
 XBEE_ADDR_SHORT = '\xFF\xFE'
@@ -17,6 +18,31 @@ DEVICE = '/dev/ttyUSB0'
 bot_array = []
 final_bot_array = []
 
+
+def exit_handler():
+    stop = BeeCommand()
+    stop.command.direction = 0
+    stop.command.magnitude = 0
+    stop.command.turn = 0
+    stop.command.accel = 0
+    ser = serial.Serial(DEVICE, 57600)
+    xbee = ZigBee(ser)
+    xbee.tx(
+        dest_addr_long = XBEE_ADDR_LONG,
+        dest_addr = XBEE_ADDR_SHORT,
+        data = prepare_move_cmd(stop.command),
+    )
+    xbee.tx(
+        dest_addr_long = XBEE_ADDR_LONG,
+        dest_addr = XBEE_ADDR_SHORT,
+        data = prepare_move_cmd(stop.command),
+    )
+    xbee.tx(
+        dest_addr_long = XBEE_ADDR_LONG,
+        dest_addr = XBEE_ADDR_SHORT,
+        data = prepare_move_cmd(stop.command),
+    )
+    
 
 def find_bots():
     #The coordinator broadcasts a "Node Discover" AT command and records the addresses recieved, I suspect
@@ -108,7 +134,7 @@ def callback(data):
     )
     print "###########################################"
     print data.command
-    #print parse(xbee.wait_read_frame())
+
 
 def listener():
     #initializes the subscriber that receives the movement commands
@@ -125,20 +151,10 @@ def listener():
     xbee.halt()
     ser.close()
 
-def parse(frame):
-    #Parses the transmit status on each message for relevant information
-    print "Frame: %r" %frame
-    info = {
-        'length': str(len(frame)/2),
-        'frame_id': frame[2:4],
-        'addr': frame[4:8],
-        'retry': frame[8:10],
-        'status': frame[10:12]
-        }
-    return info
 
 
 if __name__ == '__main__':
+    rospy.on_shutdown(exit_handler)
     find_bots()
     rospy.init_node('addr_publisher')
     pub = rospy.Publisher('/bot_addrs', String, queue_size=1)
