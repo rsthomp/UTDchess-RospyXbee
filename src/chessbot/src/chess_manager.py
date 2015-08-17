@@ -6,21 +6,19 @@ from chessbot.msg import Axis
 from chessbot.msg import Vector
 from std_msgs.msg import String
 from geometry_msgs.msg import PointStamped
-import binascii
-from math import sin, cos, atan2, pi
 import roslaunch
 import time
 
 #Contains each bot's location, indexed by subject name
 bot_locations = {}
 
-#Node's topics, indexed by namespace
+#Node's publishers, indexed by namespace
 bot_publishers = {}
 bot_vectors_pubs = {}
-processes = []
 
 def loc_callback(data):
 	global bot_locations
+	global bot_vectors_pubs
 	prevIdent = data.markers[0].subject_name
 	for marker_pos in data.markers:
 		ident = marker_pos.subject_name
@@ -44,14 +42,20 @@ def loc_callback(data):
 	#This sends messages to bots depending on where the other bots are in relation to them 
 	#So said bots are able to avoid collisions using a PID-Repulsion controller
 	for bot in bot_locations.keys():
+		if bot == '':
+			continue
+		print bot_vectors_pubs
 		pub = bot_vectors_pubs[bot]
 		for other_bot in bot_locations:
-			vector = Vector()
-			vector.origin_x = bot_locations[bot][0][0]
-			vector.origin_y = bot_locations[bot][0][1]
-			vector.end_x = other_bot[0][0]
-			vector.end_y = other_bot[0][1]
-			pub.publish(vector)
+			if other_bot != bot:
+				if other_bot == '':
+					continue
+				vector = Vector()
+				vector.origin_x = bot_locations[bot][0][0]
+				vector.origin_y = bot_locations[bot][0][1]
+				vector.end_x = bot_locations[other_bot][0][0]
+				vector.end_y = bot_locations[other_bot][0][1]
+				pub.publish(vector)
 
 
 def send_location(bot, publisher):
@@ -70,6 +74,7 @@ def send_location(bot, publisher):
 def topic_creator(bot):
 	#creates a topic for each robot's TF broadcaster in that robot's namespace
 	global bot_publishers
+	global bot_vectors_pubs
 	bot_publishers[bot] = rospy.Publisher("/%s/destination" % bot, Axis, queue_size=100)
 	bot_vectors_pubs[bot] = rospy.Publisher("/%s/repulsions" % bot, Vector, queue_size=100)
 
@@ -79,27 +84,24 @@ def node_creator(ns):
 	package = 'FullChess'
 	control_pkg = rospy.get_param("%s_controller" % ns)
 	controller = roslaunch.core.Node(package, control_pkg, output = "screen", namespace=ns, launch_prefix="xterm -e")
-	communicator = roslaunch.core.Node(package, 'Communicator_Template.py', namespace=ns, launch_prefix="xterm -e", output="screen")
+	communicator = roslaunch.core.Node(package, 'Communicator_Template.py', namespace=ns, launch_prefix="xterm -e")
 	broadcaster = roslaunch.core.Node(package, 'Broadcaster_template.py', namespace=ns, launch_prefix="xterm -e")
 	launch = roslaunch.scriptapi.ROSLaunch()
 	launch.start()
 
-	
+	#launches each node
 	process = launch.launch(controller)
-	processes.append(process)
 	process = launch.launch(communicator)
-	processes.append(process)
 	process = launch.launch(broadcaster)
-	processes.append(process)
 
 def get_addrs():
 	global bot_publishers
 	#finds each robot's name and address, and stores them as a global parameter
-	package = 'UTDchess_RospyXbee'
-	node_discover = roslaunch.core.Node(package, 'cmd_vel_listener.py', output = "screen")
+	xbee_coord = roslaunch.core.Node('UTDchess_RospyXbee', 'cmd_vel_listener.py', output = "screen")
 	launch = roslaunch.scriptapi.ROSLaunch()
 	launch.start()
-	process = launch.launch(node_discover)
+	process = launch.launch(xbee_coord)
+
 	data = rospy.wait_for_message("/bot_addrs", String)
 	while data.data != 'end':
 		addr_long = data.data[0:16]
@@ -117,6 +119,5 @@ from chessbot.msg import RobCMD
 if __name__ == '__main__':
 	rospy.init_node('bot_locs_listener', anonymous=True)
 	get_addrs()
-
 	rospy.Subscriber("vicon/markers", Markers, loc_callback)
 	rospy.spin()

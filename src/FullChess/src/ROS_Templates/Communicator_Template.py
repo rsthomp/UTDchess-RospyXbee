@@ -14,6 +14,7 @@ from chessbot.msg import BeeCommand
 #this ensures that each node can only communicate with one robot
 NAME = rospy.get_namespace()
 NAME = NAME[1:(len(NAME)-1)]
+print "Bot: %s" % NAME
 XBEE_ADDR_LONG = rospy.get_param("/%s_long" % NAME)
 XBEE_ADDR_SHORT = rospy.get_param("/%s_short" % NAME)
 
@@ -29,15 +30,9 @@ def cmd_vel_command(msg):
     finalCmd.addr_long = XBEE_ADDR_LONG
     finalCmd.addr_short = XBEE_ADDR_SHORT
     finalCmd.command = msg
-    rospy.loginfo(NAME)
-    rospy.loginfo("Sending: %s" % finalCmd)
+    rospy.loginfo("Bot: %s" % NAME)
+    rospy.loginfo("Sending command: %s" % finalCmd)
     publ.publish(finalCmd)
-    #xbee.tx(
-    #    dest_addr_long = XBEE_ADDR_LONG,
-    #    dest_addr = XBEE_ADDR_SHORT,
-    #    data=data,
-    #)
-    #print parse(xbee.wait_read_frame())
 
 def callback(msg):
     cmd_vel_command(msg)
@@ -45,18 +40,13 @@ def callback(msg):
 def listener():
     #initializes the subscriber that receives the movement commands
     print "Starting Listener"
-    #global xbee
 
-    #ser = serial.Serial(DEVICE, 57600)
-    #xbee = ZigBee(ser)
     print "Ready to receive commands."
     rospy.init_node('Communicator', anonymous=False)
     
     rospy.Subscriber("cmd_hex", RobCMD, callback)
     rospy.spin()
 
-    #xbee.halt()
-    #ser.close()
 
 def parse(frame):
     #Parses the transmit status on each message for relevant information
@@ -72,5 +62,8 @@ def parse(frame):
 
 
 if __name__ == '__main__':
-    listener()
+    try:
+        listener()
+    except rospy.ROSInterruptException:
+        raise
 

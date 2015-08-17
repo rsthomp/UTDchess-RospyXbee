@@ -15,14 +15,14 @@ import threading
 #added coulomb's law repulsion stuff (need to check charge values)
 #(not to mention just general functionality)
 #add Vector to the relevant Cmakes and Package files
-#used threading XO
+#used threading 
 #
 
 
 #this gives the transform listener the correct frame subscription for every node
 NAME = rospy.get_namespace()
 NAME = NAME[1:(len(NAME)-1)]
-
+print "Bot: %s" % NAME
 #initializing the global variables, the target point and repulsion vector
 point = PointStamped()
 repulsion = [0, 0]
@@ -44,7 +44,7 @@ def get_point():
 def get_target():
 	#transforms the target to the robot's coordinate frame for the PI controller
 	global NAME
-	global point
+    point = get_point()
 	point.header.frame_id = '/world'
 	rate = rospy.Rate(1000)
 	while not rospy.is_shutdown():
@@ -57,28 +57,29 @@ def get_target():
 
 def repulsion_subscriber():
 	#This is started in its own thread to update the repulsion constant
-	rospy.Subscriber("/%s/repulsions", Vector, repulsion_calc)	
+	global NAME
+	rospy.Subscriber("/%s/repulsions" % NAME, Vector, repulsion_calc)	
 	rospy.spin()
 
 def repulsion_calc(data):
 	#This function uses Coulomb's law to 'repel' robots away from one another.
-	global repulsion_const
-	x1 = data.origin_x
-	y1 = data.origin_y
-	x2 = data.end_x
-	y2 = data.end_y
-	origin = [x1, y1]
-	end = [x2, y2]
-	R = abs(calc_mag(end, origin))
-	
-	#Our charge and electrical constants
-	q1 = 1
-	q2 = 1
-	e0 = 9
-
-	#rV is the vector of the 'charge' that will be used to adjust the course of the robot
-	rV = [((x2 - x1)/R**3)((q1*q2)/(4*math.pi*e0)), ((y2 - y1)/R**3)((q1*q2)/(4*math.pi*e0))]
-	repulsion_const += rV
+	global repulsion
+		x1 = data.origin_x
+		y1 = data.origin_y
+		x2 = data.end_x
+		y2 = data.end_y
+		origin = [x1, y1]
+		end = [x2, y2]
+		R = calc_mag(end, origin)
+		rV = [(x2 - x1)/R, (y2 - y1)/R]
+		#Our charge and electrical constants
+		#q1 = .5
+		#q2 = .5
+		#e0 = .2
+		#rV is the vector of the 'charge' that will be used to adjust the course of the robot
+		#rV = [((x2 - x1)/R**3)*((q1*q2*e0)), ((y2 - y1)/R**3)*((q1*q2 *e0))]
+		if R > calc_mag([repulsion[0], repulsion[1]], [0,0]):
+			repulsion = rV
 
 def build_vector(target, current):
 	#builds a vector between two points
@@ -109,27 +110,33 @@ def calc_mag(target, current):
 	return mag
 
 
-def proportion_controller(data):
+def proportion_controller():
 	#This creates a new thread to update the repulsion variable
 	sub = threading.Thread(target = repulsion_subscriber)
-	sub.daemon = True
-	sub.start
+	sub.start()
+
 	#Setting up the command publisher
 	cmd_pub = rospy.Publisher("cmd_hex", RobCMD, queue_size=100)
 	rate = rospy.Rate(10.0)
 	#These are the constants used in the PI controller
 	kp = 1.5
-	ki = 0.3
+	ki = 0 #0.3
 	integral_ang = 0
 
 	try:
 		while not rospy.is_shutdown():
 			#Accounting for all global variables
 			global repulsion
+			print "Current repulse: %r" % repulsion
 			command = RobCMD()
 			point = get_target()
 			#path[0] is direction, path[1] is magnitude
-			path = build_vector([point.point.x * 1000 + repulsion[0], point.point.y * 1000 + repulsion [1]], [0,0])
+			path = build_vector([(point.point.x + repulsion[0]) * 1000, (point.point.y + repulsion[1]) * 1000], [0,0])
+			#if path[1] > calc_mag([repulsion[0], repulsion[1]], [0,0]):
+				#path[0] += 90
+				#if path[0] > 180:
+					#path[0] += -360
+
 			print "Path vector: %r " % path
 			angle = path[0]
 			mag = path[1]

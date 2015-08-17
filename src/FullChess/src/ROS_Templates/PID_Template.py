@@ -13,6 +13,7 @@ import thread
 #this gives the transform listener thesub correct frame subscription for every node
 NAME = rospy.get_namespace()
 NAME = NAME[1:(len(NAME)-1)]
+print "Bot: %s" % NAME
 point = PointStamped()
 
 def get_point():
@@ -27,7 +28,7 @@ def get_point():
 def get_target():
 	#transforms the target to the robot's coordinate frame for the PI controller
 	global NAME
-	global point
+	point = get_point()
 	point.header.frame_id = '/world'
 	rate = rospy.Rate(1000)
 	while not rospy.is_shutdown():
@@ -37,8 +38,6 @@ def get_target():
 		except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 			rate.sleep()
 			continue
-
-	
 
 def build_vector(target, current):
 	#builds a vector between two points
@@ -122,7 +121,7 @@ def proportion_controller():
 				command.turn = 0
 				command.accel = 0
 				cmd_pub.publish(command)
-				if get_point() == point:
+				while get_point() == point:
 					time.sleep(.5)
  
 			cmd_pub.publish(command)

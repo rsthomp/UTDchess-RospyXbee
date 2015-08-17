@@ -55,7 +55,7 @@ def find_bots():
     xbee = ZigBee(ser)
 
     try:
-        print("Searching for bots...")
+        print("Searching for bots. This may take a moment.")
         xbee.at(
             dest_addr_long = XBEE_ADDR_LONG,
             dest_addr = XBEE_ADDR_SHORT,
@@ -65,15 +65,11 @@ def find_bots():
         num_of_robots = 0
         while timeout > time.time():
             dictl = xbee.wait_read_frame()
-            #print "frame received"
             if dictl == None:
                 break
-            #print dictl
             bot_array.append(parse_ND(dictl))
-            #print "Response: %r " % bot_array[num_of_robots]
             num_of_robots += 1
     except KeyboardInterrupt:
-        print "exiting"
         sys.exit(0)
 
 def assemble_msg(info):
@@ -112,7 +108,7 @@ def hex_to_addr(adhex):
     #Changes the hex address given by the dictionary
     #to a format usable by the xbee. Works on long and short.
     address = binascii.unhexlify(adhex)
-    print binascii.hexlify(address)
+    print "Address found: %s " % binascii.hexlify(address)
     return address
 
 def prepare_move_cmd(msg):
@@ -132,18 +128,17 @@ def callback(data):
         dest_addr = hex_to_addr(data.addr_short),
         data = prepare_move_cmd(data.command),
     )
-    print "###########################################"
-    print data.command
+    print "#######################################################"
+    rospy.log_info(data.command)
 
 
 def listener():
     #initializes the subscriber that receives the movement commands
-    print "Starting Listener"
     global xbee
 
     ser = serial.Serial(DEVICE, 57600)
     xbee = ZigBee(ser)
-    print "Ready to receive commands."
+    print "Coordinator ready to receive commands."
     
     rospy.Subscriber("/cmd_hex", BeeCommand, callback)
     rospy.spin()
@@ -160,8 +155,6 @@ if __name__ == '__main__':
     pub = rospy.Publisher('/bot_addrs', String, queue_size=1)
     while not pub.get_num_connections() > 0:
         time.sleep(.5)
-
-    print pub.get_num_connections()
     for bot in bot_array:
         addr_msg = String()
         addr_msg = assemble_msg(bot)

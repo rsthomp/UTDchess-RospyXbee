@@ -9,14 +9,15 @@ from chessbot.msg import Axis
 #this makes sure all the transforms are labeled correctly for every node
 NAME = rospy.get_namespace()
 NAME = NAME[1:(len(NAME)-1)]
+print "Bot: %s" % NAME
 
 #pub = rospy.Publisher('/study')
 
 def avg(data):
     global NAME
     center = [data.center.x, data.center.y]
-    rospy.loginfo(NAME)
-    rospy.loginfo(center)
+    rospy.loginfo("Bot: %s" % NAME)
+    rospy.loginfo("Bot position: %s" % center)
 
     #this is the Y axis
     BOT_X_AXIS = [[center[0], center[1]], [data.front.x, data.front.y]]
@@ -32,10 +33,10 @@ def avg(data):
                      "world")
 
 def tf_broadcaster():
-    rospy.init_node('tf_broadcaster', anonymous = False)
-    rospy.is_shutdown()
-    rospy.Subscriber('destination', Axis, avg)
-    rospy.spin()
+        rospy.init_node('tf_broadcaster', anonymous = False)
+        rospy.is_shutdown()
+        rospy.Subscriber('destination', Axis, avg)
+        rospy.spin()
 
 def calc_angle(center, end):
     #calculates the angle between the X-axis of the world and chessbot frames
@@ -45,5 +46,8 @@ def calc_angle(center, end):
     return angle
 
 if __name__ == '__main__':
-    br = tf.TransformBroadcaster()
-    tf_broadcaster()
+    try:
+        br = tf.TransformBroadcaster()
+        tf_broadcaster()
+    except rospy.ROSInterruptException:
+        raise
