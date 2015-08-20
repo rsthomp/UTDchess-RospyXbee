@@ -15,10 +15,12 @@ NAME = rospy.get_namespace()
 NAME = NAME[1:(len(NAME)-1)]
 print "Bot: %s" % NAME
 point = PointStamped()
+t = 0
 
 def get_point():
 	global NAME
 	global point
+	global t
 	pt = rospy.get_param("/%s_point" % NAME)
 	point.point.x = pt[0]
 	point.point.y = pt[1]
@@ -71,16 +73,19 @@ def calc_mag(target, current):
 
 def proportion_controller():
 	#Initializing the command publisher
+	global point
 	cmd_pub = rospy.Publisher("cmd_hex", RobCMD, queue_size=100)
 	rate = rospy.Rate(10.0)
 	#Setting the PI constants
-	kp = 1.5
-	ki = 0.3
+	kp = 1.2
+	ki = 0.1
 	integral_ang = 0
+	t = 0
 	try:
 		while not rospy.is_shutdown():
-			command = RobCMD()
 			point = get_target()
+			command = RobCMD()
+			t = t + .005
 			path = build_vector([point.point.x * 1000, point.point.y * 1000], [0,0])
 			print "Path vector: %r " % path
 			angle = path[0]
@@ -112,7 +117,7 @@ def proportion_controller():
 			command.direction = 0
 
 			#The robot moves forward when it is facing the target
-			if abs(angle) < 20:
+			if abs(angle) < 40:
 				command.magnitude = 100
 			#The robot stops once it reaches the target
 			if abs(mag) < 50:
@@ -121,8 +126,8 @@ def proportion_controller():
 				command.turn = 0
 				command.accel = 0
 				cmd_pub.publish(command)
-				while get_point() == point:
-					time.sleep(.5)
+				#while get_point() == point:
+					#time.sleep(.5)
  
 			cmd_pub.publish(command)
 			rate.sleep()

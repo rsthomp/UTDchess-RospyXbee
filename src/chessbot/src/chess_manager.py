@@ -8,6 +8,7 @@ from std_msgs.msg import String
 from geometry_msgs.msg import PointStamped
 import roslaunch
 import time
+import math
 
 #Contains each bot's location, indexed by subject name
 bot_locations = {}
@@ -42,21 +43,30 @@ def loc_callback(data):
 	#This sends messages to bots depending on where the other bots are in relation to them 
 	#So said bots are able to avoid collisions using a PID-Repulsion controller
 	for bot in bot_locations.keys():
+		mag = 100000
 		if bot == '':
 			continue
-		print bot_vectors_pubs
 		pub = bot_vectors_pubs[bot]
+		vector = Vector()
 		for other_bot in bot_locations:
 			if other_bot != bot:
 				if other_bot == '':
 					continue
-				vector = Vector()
-				vector.origin_x = bot_locations[bot][0][0]
-				vector.origin_y = bot_locations[bot][0][1]
-				vector.end_x = bot_locations[other_bot][0][0]
-				vector.end_y = bot_locations[other_bot][0][1]
-				pub.publish(vector)
+				if mag > calc_mag([bot_locations[bot][0][0], bot_locations[bot][0][1]], [bot_locations[other_bot][0][0], bot_locations[other_bot][0][1]]):
+					mag = abs(calc_mag([bot_locations[bot][0][0], bot_locations[bot][0][1]], [bot_locations[other_bot][0][0], bot_locations[other_bot][0][1]]))
+					vector.origin_x = bot_locations[bot][0][0]
+					vector.origin_y = bot_locations[bot][0][1]
+					vector.end_x = bot_locations[other_bot][0][0]
+					vector.end_y = bot_locations[other_bot][0][1]
+		#print bot
+		#print vector 
+		pub.publish(vector)
 
+def calc_mag(target, current):
+	#calculates a vector's magnitude relative to a coordinate frame (origin given by current)
+	mag = (target[1] - current[1])**2 + (target[0] - current [0])**2
+	mag = math.sqrt(mag)
+	return mag
 
 def send_location(bot, publisher):
 	#sends the robot's TF broadcaster its current location
@@ -75,8 +85,8 @@ def topic_creator(bot):
 	#creates a topic for each robot's TF broadcaster in that robot's namespace
 	global bot_publishers
 	global bot_vectors_pubs
-	bot_publishers[bot] = rospy.Publisher("/%s/destination" % bot, Axis, queue_size=100)
-	bot_vectors_pubs[bot] = rospy.Publisher("/%s/repulsions" % bot, Vector, queue_size=100)
+	bot_publishers[bot] = rospy.Publisher("/%s/destination" % bot, Axis, queue_size=10)
+	bot_vectors_pubs[bot] = rospy.Publisher("/%s/repulsions" % bot, Vector, queue_size=10)
 
 def node_creator(ns):
 	topic_creator(ns)
@@ -119,5 +129,7 @@ from chessbot.msg import RobCMD
 if __name__ == '__main__':
 	rospy.init_node('bot_locs_listener', anonymous=True)
 	get_addrs()
+	node_creator('chessbot32')
+	node_creator('chessbot20')
 	rospy.Subscriber("vicon/markers", Markers, loc_callback)
 	rospy.spin()

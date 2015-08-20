@@ -1,6 +1,6 @@
-chessbot32_point: [0, 0]
-chessbot31_point: [0, 0]
-chessbot20_point: [0, 0]
+chessbot32_point: [-1, 0]
+chessbot31_point: [-2, .5]
+chessbot20_point: [.5, 0]
 chessbot32_controller: 'PID_Repulsion_Template.py'
 chessbot31_controller: 'PID_Repulsion_Template.py'
 chessbot20_controller: 'PID_Repulsion_Template.py'
