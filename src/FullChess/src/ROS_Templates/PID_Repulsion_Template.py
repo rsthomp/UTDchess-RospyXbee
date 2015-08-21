@@ -77,7 +77,7 @@ def repulsion_calc(data):
 			continue
 	R = calc_mag([0, 0], [obst.point.x, obst.point.y])
 	#print "R: %r" %R
-	rV = [(-obst.point.x)/(abs(R)), (-obst.point.y)/(abs(R))]
+	rV = [(-obst.point.x)/(.75*abs(R)), (-obst.point.y)/(.75*abs(R))]
 	#print "rV: %r" % rV
 	repulsion = rV
 	#This constant adjusts how quickly the robot adjusts position to new points
@@ -139,9 +139,6 @@ def proportion_controller():
 			#Adjusts the position of the robot's destination when it needs to
 			#avoid another robot
 			if abs(calc_mag([point.point.x, point.point.y], [0,0])) > abs(calc_mag([obst.point.x, obst.point.y], [0,0])):
-				print "LLLLLLLLL"
-				print (point.point.x + repulsion[0])
-				print (point.point.y + repulsion[1])
 
 				path = build_vector([(point.point.x + repulsion[0]) * 1000, (point.point.y + repulsion[1]) * 1000], [0,0])
 			else:

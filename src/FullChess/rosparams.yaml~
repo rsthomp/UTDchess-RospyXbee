@@ -1,0 +1,22 @@
+chessbot32_point: [-1, 0]
+chessbot31_point: [-1, -1.5]
+chessbot20_point: [-1, 1.5]
+
+chessbot32_controller: 'PID_Repulsion_Template.py'
+chessbot31_controller: 'PID_Repulsion_Template.py'
+chessbot20_controller: 'PID_Repulsion_Template.py'
+
+chessbot31_parametricStart: 0
+chessbot32_parametricStart: 0
+chessbot20_parametricStart: 1.25
+
+#Written as parametric equations in terms of 't'
+#Use math.function() for complex operations
+
+chessbot31_xEq: 'math.sin(3*t) * math.cos(t) - 1'
+chessbot32_xEq: 'math.cos(t) - 1'
+chessbot20_xEq: 'math.sin(3*t) * math.cos(t) - 1'
+
+chessbot31_yEq: 'math.sin(3*t) * math.sin(t)'
+chessbot32_yEq: 'math.sin(t)'
+chessbot20_yEq: 'math.sin(3*t) * math.sin(t)'
