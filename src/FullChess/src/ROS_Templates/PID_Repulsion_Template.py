@@ -59,7 +59,7 @@ def repulsion_calc(data):
 	global NAME
 	global mode
 	#the obstacle's location in the /world frame
-	print "x: %r" %data.end_x
+	#print "x: %r" %data.end_x
 	x2 = data.end_x
 	y2 = data.end_y
 	obst = PointStamped()
@@ -77,7 +77,7 @@ def repulsion_calc(data):
 			continue
 	R = calc_mag([0, 0], [obst.point.x, obst.point.y])
 	#print "R: %r" %R
-	rV = [(-obst.point.x)/(R), (-obst.point.y)/(R)]
+	rV = [(-obst.point.x)/(abs(R)), (-obst.point.y)/(abs(R))]
 	#print "rV: %r" % rV
 	repulsion = rV
 	#This constant adjusts how quickly the robot adjusts position to new points
@@ -116,7 +116,6 @@ def proportion_controller():
 	#This creates a new thread to update the repulsion variable
 	sub = threading.Thread(target = repulsion_subscriber)
 	sub.start()
-
 	#Setting up the command publisher
 	cmd_pub = rospy.Publisher("cmd_hex", RobCMD, queue_size=100)
 	rate = rospy.Rate(10.0)
@@ -140,6 +139,10 @@ def proportion_controller():
 			#Adjusts the position of the robot's destination when it needs to
 			#avoid another robot
 			if abs(calc_mag([point.point.x, point.point.y], [0,0])) > abs(calc_mag([obst.point.x, obst.point.y], [0,0])):
+				print "LLLLLLLLL"
+				print (point.point.x + repulsion[0])
+				print (point.point.y + repulsion[1])
+
 				path = build_vector([(point.point.x + repulsion[0]) * 1000, (point.point.y + repulsion[1]) * 1000], [0,0])
 			else:
 				path = build_vector([point.point.x * 1000, point.point.y * 1000], [0,0])	

@@ -15,14 +15,16 @@ NAME = rospy.get_namespace()
 NAME = NAME[1:(len(NAME)-1)]
 print "Bot: %s" % NAME
 point = PointStamped()
-t = 0
+t = rospy.get_param("/%s_parametricStart" % NAME)
 
 def get_point():
 	global t
+	global NAME
 	#Enter your equations here. Note that this is the world frame
-	point.point.x = math.cos(t) -1
-	point.point.y = math.sin(t) 
+	point.point.x = eval(rospy.get_param("/%s_xEq" % NAME))
+	point.point.y = eval(rospy.get_param("/%s_yEq" % NAME))
 	t = t + .03
+	print point
 	return point
 
 def get_target():
@@ -78,12 +80,10 @@ def proportion_controller():
 	kp = 1.2
 	ki = 0.1
 	integral_ang = 0
-	t = 0
 	try:
 		while not rospy.is_shutdown():
 			point = get_target()
 			command = RobCMD()
-			t = t + .005
 			path = build_vector([point.point.x * 1000, point.point.y * 1000], [0,0])
 			print "Path vector: %r " % path
 			angle = path[0]
@@ -115,7 +115,8 @@ def proportion_controller():
 			command.direction = 0
 
 			#The robot moves forward when it is facing the target
-			if abs(angle) < 40:
+			if abs(angle) < 20:
+				print "Rolling"
 				command.magnitude = 100
 			#The robot stops once it reaches the target
 			if abs(mag) < 50:

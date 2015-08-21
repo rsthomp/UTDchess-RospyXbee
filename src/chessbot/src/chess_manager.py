@@ -58,8 +58,8 @@ def loc_callback(data):
 					vector.origin_y = bot_locations[bot][0][1]
 					vector.end_x = bot_locations[other_bot][0][0]
 					vector.end_y = bot_locations[other_bot][0][1]
-		#print bot
-		#print vector 
+		print bot
+		print vector 
 		pub.publish(vector)
 
 def calc_mag(target, current):
@@ -129,7 +129,9 @@ from chessbot.msg import RobCMD
 if __name__ == '__main__':
 	rospy.init_node('bot_locs_listener', anonymous=True)
 	get_addrs()
-	node_creator('chessbot32')
-	node_creator('chessbot20')
+	
+	#If you want to add a robot without using Xbee communication
+	#node_creator('chessbot31')
+
 	rospy.Subscriber("vicon/markers", Markers, loc_callback)
 	rospy.spin()

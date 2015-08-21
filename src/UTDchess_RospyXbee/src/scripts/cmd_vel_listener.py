@@ -20,6 +20,8 @@ final_bot_array = []
 
 
 def exit_handler():
+    #This sends a stop command to all the robots on the field when
+    #the program is ended. 
     stop = BeeCommand()
     stop.command.direction = 0
     stop.command.magnitude = 0
@@ -27,6 +29,7 @@ def exit_handler():
     stop.command.accel = 0
     ser = serial.Serial(DEVICE, 57600)
     xbee = ZigBee(ser)
+
     xbee.tx(
         dest_addr_long = XBEE_ADDR_LONG,
         dest_addr = XBEE_ADDR_SHORT,
@@ -45,10 +48,6 @@ def exit_handler():
     
 
 def find_bots():
-    #The coordinator broadcasts a "Node Discover" AT command and records the addresses recieved, I suspect
-    #Add coordinator first, then add on each bot as it responds.
-    #robot id command
-    
     global xbee
     
     ser = serial.Serial(DEVICE, 57600)
@@ -73,6 +72,7 @@ def find_bots():
         sys.exit(0)
 
 def assemble_msg(info):
+    #Prepares a string with the Address information of each Xbee
     msg = ''
     msg += info['addr_long']
     msg += info['addr_short']
@@ -128,9 +128,9 @@ def callback(data):
         dest_addr = hex_to_addr(data.addr_short),
         data = prepare_move_cmd(data.command),
     )
+    #Prints the command being sent to the robot for debugging purposes
     print "#######################################################"
     rospy.log_info(data.command)
-
 
 def listener():
     #initializes the subscriber that receives the movement commands
@@ -140,19 +140,23 @@ def listener():
     xbee = ZigBee(ser)
     print "Coordinator ready to receive commands."
     
+    #Every robot's Communicator publishes addresses and movement commands to this topic
     rospy.Subscriber("/cmd_hex", BeeCommand, callback)
     rospy.spin()
 
     xbee.halt()
     ser.close()
 
-
-
 if __name__ == '__main__':
+    #Sets up the exit command
     rospy.on_shutdown(exit_handler)
+    #Finds the robot addresses, and publishes them for the communicator templates to use
     find_bots()
     rospy.init_node('addr_publisher')
     pub = rospy.Publisher('/bot_addrs', String, queue_size=1)
+
+    #Waits to publish messages until the topic is subscribed to,
+    #so that no addresses are lost
     while not pub.get_num_connections() > 0:
         time.sleep(.5)
     for bot in bot_array:
@@ -161,6 +165,8 @@ if __name__ == '__main__':
         pub.publish(addr_msg)
         time.sleep(1)
     pub.publish('end')
+
+    #Begins sending movement commands to Robots
     listener()
 
 
