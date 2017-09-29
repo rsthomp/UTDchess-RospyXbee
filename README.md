@@ -1,6 +1,8 @@
 # UTDchess-RospyXbee
 Python-xbee node for controlling UTD Chess Robot
 
+This project allows for multiple robots (up to 32) to simultaneously use the Vicon Motion Capture system to track their position and inform their own respective control nodes. A video of the software in action can be found here: https://www.youtube.com/watch?v=6G1eWFsEJ-c
+
 Instructions for Use: 
 
 1. Turn on the Vicon, and open the Vicon Nexus program. Under “File > Data Management”, select the green “Chessbot” node. The subject pane should now have all the potential robots prepared.
